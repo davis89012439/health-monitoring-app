@@ -1,0 +1,9 @@
+<resources>
+
+    <style name="Theme.ImpSysHealth"
+        parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+
+        <item name="colorPrimary">@color/color_action_bar</item>
+        <item name="colorPrimaryDark">@color/color_status_bar</item>
+    </style>
+</resources>
