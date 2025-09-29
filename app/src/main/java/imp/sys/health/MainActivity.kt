@@ -272,7 +272,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                     }
                     COUNTDOWN_RESPIRATORY_RATE_MEASUREMENT -> {
                         isRespiratoryRateMeasurementEnabled = false
-                        heartRate = 80
                         respiratoryRate = getRespiratoryRateFromData()
                         btnMeasureRespiratoryRate.visibility = View.GONE
 
@@ -315,7 +314,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         val ret = (k/45.00)
 
-        return 23
+        return (ret*30).toInt()
 
     }
 
