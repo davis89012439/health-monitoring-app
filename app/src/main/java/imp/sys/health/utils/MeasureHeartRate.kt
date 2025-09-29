@@ -12,70 +12,113 @@ import imp.sys.health.database.HealthReportDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlin.math.min
 
 @RequiresApi(Build.VERSION_CODES.P)
-fun getHeartRate(context: Context, uri: Uri, timestamp: String)  : String{
-    var m_bitmap: Bitmap? = null
+fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
+    val MAX_FRAME_COUNT_CAP = 425
+    val START_FRAME_INDEX = 10
+    val FRAME_STEP = 15
+    val ROI_X_START = 350
+    val ROI_Y_START = 350
+    val ROI_X_END_EXCL = 450
+    val ROI_Y_END_EXCL = 450
+    val PEAK_THRESHOLD = 3500
+    // -------------------------------------
+
     val retriever = MediaMetadataRetriever()
-    val frameList = ArrayList<Bitmap>()
+    val frames = ArrayList<Bitmap>()
+
     try {
+
         retriever.setDataSource(context, uri)
-        val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT)
-        val aduration = duration!!.toInt()
-        var i = 10
-        while (i < aduration) {
-            val bitmap = retriever.getFrameAtIndex(i)
-            if (bitmap != null) {
-                frameList.add(bitmap)
-            }
-            i += 5
+
+
+        val countStr = retriever.extractMetadata(
+            MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT
+        )
+        val frameLimit = min(countStr?.toIntOrNull() ?: MAX_FRAME_COUNT_CAP, MAX_FRAME_COUNT_CAP)
+
+        var i = START_FRAME_INDEX
+        while (i < frameLimit) {
+            retriever.getFrameAtIndex(i)?.let { frames.add(it) }
+            i += FRAME_STEP
         }
     } catch (e: Exception) {
-        Log.e("MeaureHeartRate", "Exception --> $e")
+        Log.d("MediaPath", "setDataSource/query frames error: ${e.message}")
     } finally {
-        retriever?.release()
-        var redBucket: Long = 0
-        var pixelCount: Long = 0
-        val a = mutableListOf<Long>()
-        for (i in frameList) {
-            redBucket = 0
-            for (y in 550 until 650) {
-                for (x in 550 until 650) {
-                    val c: Int = i.getPixel(x, y)
-                    pixelCount++
-                    redBucket += Color.red(c) + Color.blue(c) + Color.green(c)
-                }
-            }
-            a.add(redBucket)
-        }
-        val b = mutableListOf<Long>()
-        for (i in 0 until a.lastIndex - 5) {
-            var temp =
-                (a.elementAt(i) + a.elementAt(i + 1) + a.elementAt(i + 2) + a.elementAt(
-                    i + 3
-                ) + a.elementAt(
-                    i + 4
-                )) / 4
-            b.add(temp)
-        }
-        var x = b.elementAt(0)
-        var count = 0
-        for (i in 1 until b.lastIndex) {
-            var p=b.elementAt(i.toInt())
-            if ((p-x) > 3500) {
-                count += 1
-            }
-            x = b.elementAt(i.toInt())
-        }
-        val rate = ((((count.toFloat() / 45) * 60).toInt())/2).toString()
-        Log.d("HTX_R","HR = "+rate)
-
-        val healthReportDatabase = HealthReportDatabase.getHealthReportDatabase(context)
-        GlobalScope.launch(Dispatchers.IO) {
-            healthReportDatabase.healthReportDao().updateHealthReport(rate, timestamp)
-        }
-        return rate
-
+        try { retriever.release() } catch (_: Exception) {}
     }
 
+    if (frames.isEmpty()) {
+        GlobalScope.launch(Dispatchers.IO) {
+            HealthReportDatabase.getHealthReportDatabase(context)
+                .healthReportDao().updateHealthReport("0", timestamp)
+        }
+        return "0"
+    }
+
+
+    val a = mutableListOf<Long>()
+    var pixelCount = 0L
+
+    fun sumRoi(bmp: Bitmap): Long {
+
+        val x0 = ROI_X_START.coerceAtLeast(0)
+        val y0 = ROI_Y_START.coerceAtLeast(0)
+        val x1 = ROI_X_END_EXCL.coerceAtMost(bmp.width)
+        val y1 = ROI_Y_END_EXCL.coerceAtMost(bmp.height)
+
+        var sum = 0L
+        for (y in y0 until y1) {
+            for (x in x0 until x1) {
+                val c = bmp.getPixel(x, y)
+                pixelCount++
+                sum += Color.red(c) + Color.green(c) + Color.blue(c)
+            }
+        }
+        return sum
+    }
+
+    for (bmp in frames) a.add(sumRoi(bmp))
+
+
+    val b = mutableListOf<Long>()
+    if (a.size >= 6) {
+        for (k in 0 until (a.lastIndex - 5)) {
+            val smoothed = (a[k] + a[k + 1] + a[k + 2] + a[k + 3] + a[k + 4]) / 4
+            b.add(smoothed)
+        }
+    }
+
+    if (b.isEmpty()) {
+        GlobalScope.launch(Dispatchers.IO) {
+            HealthReportDatabase.getHealthReportDatabase(context)
+                .healthReportDao().updateHealthReport("0", timestamp)
+        }
+        return "0"
+    }
+
+    var prev = b.first()
+    var count = 0
+    for (idx in 1 until b.lastIndex) {
+        val p = b[idx]
+        if (p - prev > PEAK_THRESHOLD) count++
+        prev = p
+    }
+
+
+    val bpm = (((count.toFloat()) * 60).toInt() / 4).toString()
+
+    GlobalScope.launch(Dispatchers.IO) {
+        try {
+            HealthReportDatabase.getHealthReportDatabase(context)
+                .healthReportDao().updateHealthReport(bpm, timestamp)
+        } catch (e: Exception) {
+            Log.e("HTX_R", "DB update error: $e")
+        }
+    }
+
+    Log.d("HTX_R", "HR = $bpm")
+    return bpm
 }
