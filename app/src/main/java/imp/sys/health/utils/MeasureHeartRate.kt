@@ -16,12 +16,13 @@ import kotlin.math.min
 
 @RequiresApi(Build.VERSION_CODES.P)
 fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
+
     val MAX_FRAME_COUNT_CAP = 425
     val START_FRAME_INDEX = 10
     val FRAME_STEP = 15
     val ROI_X_START = 350
     val ROI_Y_START = 350
-    val ROI_X_END_EXCL = 450
+    val ROI_X_END_EXCL = 450   // 「until 450」
     val ROI_Y_END_EXCL = 450
     val PEAK_THRESHOLD = 3500
     // -------------------------------------
@@ -50,6 +51,7 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
         try { retriever.release() } catch (_: Exception) {}
     }
 
+    // 若抓不到影格，回寫 0 並返回
     if (frames.isEmpty()) {
         GlobalScope.launch(Dispatchers.IO) {
             HealthReportDatabase.getHealthReportDatabase(context)
@@ -58,12 +60,12 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
         return "0"
     }
 
-
-    val a = mutableListOf<Long>()
+    // ----- 訊號處理（完全沿用 txt/教授版的做法） -----
+    val a = mutableListOf<Long>()  // 每張影格 ROI 的 (R+G+B) 總和
     var pixelCount = 0L
 
     fun sumRoi(bmp: Bitmap): Long {
-
+        // 依 txt 版 ROI 350..449，但加上邊界保護以免越界
         val x0 = ROI_X_START.coerceAtLeast(0)
         val y0 = ROI_Y_START.coerceAtLeast(0)
         val x1 = ROI_X_END_EXCL.coerceAtMost(bmp.width)
@@ -82,7 +84,7 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
 
     for (bmp in frames) a.add(sumRoi(bmp))
 
-
+    // 5 點移動平均（注意教授程式是 /4 ）
     val b = mutableListOf<Long>()
     if (a.size >= 6) {
         for (k in 0 until (a.lastIndex - 5)) {
@@ -99,6 +101,7 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
         return "0"
     }
 
+    // 峰值計數
     var prev = b.first()
     var count = 0
     for (idx in 1 until b.lastIndex) {
@@ -107,7 +110,7 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
         prev = p
     }
 
-
+    // 計算心率然後回寫 DB
     val bpm = (((count.toFloat()) * 60).toInt() / 4).toString()
 
     GlobalScope.launch(Dispatchers.IO) {
