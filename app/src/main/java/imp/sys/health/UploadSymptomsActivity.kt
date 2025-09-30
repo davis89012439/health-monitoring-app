@@ -41,7 +41,6 @@ class UploadSymptomsActivity : AppCompatActivity() {
 
         healthReportDatabase = HealthReportDatabase.getHealthReportDatabase(this)
 
-        // Get Heart Rate and Respiratory Rate
         val heartRate = intent.getIntExtra(HEART_RATE,-1).toString()
 
         val ex  = intent.extras
@@ -56,17 +55,27 @@ class UploadSymptomsActivity : AppCompatActivity() {
 
         Log.d("HT_RT","HR : "+heartRate)
 
-        // Populate Spinner with values
+        // Generative AI Used: ChatGPT (OpenAI, Sep 30, 2025)
+        //Purpose: Use a simple ArrayAdapter to populate symptom names, then mirror the currently
+        //          selected symptom’s last-seen severity into the RatingBar, and write back on change.
+        //          This keeps a lightweight in-memory model (MutableList<Float>) without extra state.
+        // Prompt: "Explain that Spinner selection drives RatingBar display (read), and RatingBar change
+        //          writes back into the same index (write). Keep Android widget defaults; no custom view."
         ArrayAdapter.createFromResource(
             this,
             R.array.symptoms_options,
             android.R.layout.simple_spinner_item
-        ).also { adapter ->
+        ).also { adapter ->  //spinner
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             spnrSymptomDropdown.adapter = adapter
         }
 
-        // Display the last recorded rating of selected spinner item
+        // Generative AI Used: ChatGPT (OpenAI, Sep 30, 2025)
+        // Purpose: On selection, surface the stored severity for that symptom by setting rbSeverity.rating,
+        //          providing immediate feedback and enabling quick per-symptom edits.
+        // Prompt: "Add a brief note that item position maps 1:1 to symptoms[]; no extra mapping table needed."
+
+
         spnrSymptomDropdown.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(adapterView: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 rbSeverity.rating = symptoms[position]
@@ -78,7 +87,11 @@ class UploadSymptomsActivity : AppCompatActivity() {
 
         }
 
-        // Update the rating for the selected spinner item
+        // Generative AI Used: ChatGPT (OpenAI, Sep 30, 2025)
+        // Purpose: Persist the user’s adjustment back into the in-memory list so the model remains
+        //          the single source of truth before saving to Room.
+        // Prompt: "Clarify that RatingBar writes directly into symptoms[spinner.selectedItemPosition]."
+
         rbSeverity.setOnRatingBarChangeListener{_, rating, _ ->
             symptoms[spnrSymptomDropdown.selectedItemPosition] = rating
         }

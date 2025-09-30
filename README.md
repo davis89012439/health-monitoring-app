@@ -1,4 +1,5 @@
-# CSE535-Project1
+# Name: jing chi ling  and ASU ID: 1233379825
+
 
 ## Q1 : Imagine you are new to the programming world and not proficient enough in coding. But, you have a brilliant idea where you want to develop a context-sensing application like Project 1.  You come across the Heath-Dev paper and want it to build your application. Specify what Specifications you should provide to the Health-Dev framework to develop the code ideally. (15 points)
 
@@ -59,3 +60,7 @@ bHealthy uses sensors (like ECG and EEG) to collect signals. In my case, it's he
   Mobile computing isn't just about “writing an app”; it's about building an entire interactive system. This involves sensor data collection, real-time data processing, hardware interaction, and finally, through the core node of the smartphone, integrating, analyzing, and providing personalized feedback.
   Take our project as an example: this mobile app isn't an isolated program. It collects data from physiological signals like heart rate and breathing, stores this information, and then performs real-time analysis and feedback to help users improve their health. This goes beyond simple UI or feature development—it's about building an intelligent ecosystem that responds to the user's state.
   Therefore, for me, the essence of mobile computing has long transcended “building apps.” It's about creating a comprehensive solution that integrates sensing, computing, and feedback, transforming the smartphone into the central hub of smart living.
+
+-Generative AI Acknowledgment: Portions of the code in this project were generated with assistance from ChatGPT, an AI tool developed by OpenAI.
+Reference: OpenAI. (2024). ChatGPT [Large language model]. openai.com/chatgpt
+* Estimated percentage of code influenced by Generative AI: 40%

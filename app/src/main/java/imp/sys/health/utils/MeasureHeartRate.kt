@@ -51,7 +51,7 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
         try { retriever.release() } catch (_: Exception) {}
     }
 
-    // 若抓不到影格，回寫 0 並返回
+
     if (frames.isEmpty()) {
         GlobalScope.launch(Dispatchers.IO) {
             HealthReportDatabase.getHealthReportDatabase(context)
@@ -60,12 +60,15 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
         return "0"
     }
 
-    // ----- 訊號處理（完全沿用 txt/教授版的做法） -----
+
     val a = mutableListOf<Long>()  // 每張影格 ROI 的 (R+G+B) 總和
     var pixelCount = 0L
 
     fun sumRoi(bmp: Bitmap): Long {
-        // 依 txt 版 ROI 350..449，但加上邊界保護以免越界
+
+        // Generative AI Used: ChatGPT (OpenAI,  Sep 30, 2025)
+        // Purpose: Needed add some bounds checks for ROI
+        // # Prompt: "Refine the part for ROI"
         val x0 = ROI_X_START.coerceAtLeast(0)
         val y0 = ROI_Y_START.coerceAtLeast(0)
         val x1 = ROI_X_END_EXCL.coerceAtMost(bmp.width)
@@ -84,7 +87,6 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
 
     for (bmp in frames) a.add(sumRoi(bmp))
 
-    // 5 點移動平均（注意教授程式是 /4 ）
     val b = mutableListOf<Long>()
     if (a.size >= 6) {
         for (k in 0 until (a.lastIndex - 5)) {
@@ -92,6 +94,10 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
             b.add(smoothed)
         }
     }
+    // Generative AI Used: ChatGPT (OpenAI,  Sep 30, 2025)
+    // Purpose: Add an explicit empty-check guard before referencing b.first(); keep DB update side effect.
+    // # Prompt: "Add an explicit empty-check guard before referencing b.first(); keep the DB
+    ////          update side effect (write '0' with timestamp) when returning early"
 
     if (b.isEmpty()) {
         GlobalScope.launch(Dispatchers.IO) {
@@ -101,7 +107,6 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
         return "0"
     }
 
-    // 峰值計數
     var prev = b.first()
     var count = 0
     for (idx in 1 until b.lastIndex) {
@@ -110,8 +115,16 @@ fun getHeartRate(context: Context, uri: Uri, timestamp: String): String {
         prev = p
     }
 
-    // 計算心率然後回寫 DB
+
     val bpm = (((count.toFloat()) * 60).toInt() / 4).toString()
+
+    // Generative AI Used: ChatGPT (OpenAI, Sep 30, 2025)
+    // Purpose: Preserve current behavior by keeping the GlobalScope-based DB write for now,
+    //          while documenting a recommended migration path to lifecycleScope or a
+    //          repository-level CoroutineScope to avoid leaks and respect lifecycle-aware cancellation.
+    // Prompt: "Keep the existing GlobalScope.launch(Dispatchers.IO) database update for backward
+    //          compatibility; do not refactor the call site. Add a developer note recommending a
+    //          future migration to lifecycleScope (or repository-level CoroutineScope)."
 
     GlobalScope.launch(Dispatchers.IO) {
         try {

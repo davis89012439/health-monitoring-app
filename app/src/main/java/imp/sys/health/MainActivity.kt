@@ -97,9 +97,21 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         btnMeasureHeartRate = findViewById(R.id.btnMeasureHeartRate)
         btnMeasureRespiratoryRate = findViewById(R.id.btnMeasureRespiratoryRate)
 
-        // Request camera permissions
+        // Generative AI Used: ChatGPT (OpenAI, Sep 30, 2025)
+        // Purpose: Keep the permission flow minimal (request once, then start CameraX) and use
+        //          ProcessCameraProvider with Preview+VideoCapture for a lean recording pipeline.
+        //          Compared with the professor’s baseline, this preserves app behavior while keeping
+        //          the code focused on a single back-camera use case.
+        // Prompt: "Review the CameraX bootstrap (permission gate → bind Preview + VideoCapture to lifecycle).
+        //          Keep behavior identical; do not refactor UI or threading. Add a short comment block
+        //          explaining why this setup is sufficient for our measurement use case."
         askCameraPermission()
         cameraExecutor = Executors.newSingleThreadExecutor()
+        // Generative AI Used: ChatGPT (OpenAI, Sep 30, 2025)
+        // Purpose: Unify UX for both measurements (HR/RR) via a single countdown helper that updates
+        //          button text and triggers state transitions. Keep strings and durations intact to
+        //          match the current flow and grading scripts.
+        // Prompt: "Add a brief AI note explaining that a shared CountDownTimer drives  updating labels and dispatching start/finish actions, without changing timing."
 
         btnMeasureHeartRate.setOnClickListener {
             btnMeasureHeartRate.isEnabled = false
@@ -115,7 +127,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         btnMeasureRespiratoryRate.setOnClickListener {
             btnMeasureRespiratoryRate.isEnabled = false
-            Toast.makeText(this@MainActivity, "Please lie on your back and rest the phone on your chest facing upwards", Toast.LENGTH_LONG).show()
+            Toast.makeText(this@MainActivity, "lie on your back and rest the phone on your chest ", Toast.LENGTH_LONG).show()
             startCountDownTimer(2, INITIATE_RESPIRATORY_RATE_MEASUREMENT)
         }
     }
@@ -125,6 +137,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         menuHistory = menu!!.findItem(R.id.mi_history)
         return super.onCreateOptionsMenu(menu)
     }
+
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
@@ -297,6 +310,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
 //        TODO("Not yet implemented")
     }
+
+    // Generative AI Used: ChatGPT (OpenAI, Sep 30, 2025)
+    // Purpose: Estimate respiratory rate by counting magnitude-threshold crossings over a ~45 s window
+    //          and scaling to breaths per minute; implementation tweaks (warm-up skip, threshold)
+    //          trade sensitivity for robustness without changing the overall goal.
+    // Prompt: "base on the current coding format rewrite the professor helper code and refine it and be more comprehensive "
+
 
     private fun getRespiratoryRateFromData(): Int {
         var previousValue : Float = 10f
