@@ -87,11 +87,6 @@ class UploadSymptomsActivity : AppCompatActivity() {
 
         }
 
-        // Generative AI Used: ChatGPT (OpenAI, Sep 30, 2025)
-        // Purpose: Persist the user’s adjustment back into the in-memory list so the model remains
-        //          the single source of truth before saving to Room.
-        // Prompt: "Clarify that RatingBar writes directly into symptoms[spinner.selectedItemPosition]."
-
         rbSeverity.setOnRatingBarChangeListener{_, rating, _ ->
             symptoms[spnrSymptomDropdown.selectedItemPosition] = rating
         }

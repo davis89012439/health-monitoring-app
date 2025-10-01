@@ -107,12 +107,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         //          explaining why this setup is sufficient for our measurement use case."
         askCameraPermission()
         cameraExecutor = Executors.newSingleThreadExecutor()
-        // Generative AI Used: ChatGPT (OpenAI, Sep 30, 2025)
-        // Purpose: Unify UX for both measurements (HR/RR) via a single countdown helper that updates
-        //          button text and triggers state transitions. Keep strings and durations intact to
-        //          match the current flow and grading scripts.
-        // Prompt: "Add a brief AI note explaining that a shared CountDownTimer drives  updating labels and dispatching start/finish actions, without changing timing."
-
         btnMeasureHeartRate.setOnClickListener {
             btnMeasureHeartRate.isEnabled = false
             Toast.makeText(this@MainActivity, "Please place your index finger on back camera", Toast.LENGTH_LONG).show()
