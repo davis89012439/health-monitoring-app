@@ -63,4 +63,4 @@ bHealthy uses sensors (like ECG and EEG) to collect signals. In my case, it's he
 
 -Generative AI Acknowledgment: Portions of the code in this project were generated with assistance from ChatGPT, an AI tool developed by OpenAI.
 Reference: OpenAI. (2024). ChatGPT [Large language model]. openai.com/chatgpt
-* Estimated percentage of code influenced by Generative AI: 40%
+* Estimated percentage of code influenced by Generative AI: 30%
